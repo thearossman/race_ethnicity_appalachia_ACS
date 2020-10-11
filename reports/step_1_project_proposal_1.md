@@ -1,0 +1,77 @@
+Project proposal 1
+================
+Thea Rossman
+2020-01-12
+
+  - [EdTech investing institutions, investors, and
+    investments](#edtech-investing-institutions-investors-and-investments)
+  - [Backup idea \#1: Recreate Buzzfeed’s Analysis of EdTech Company
+    Social
+    Sentinel](#backup-idea-1-recreate-buzzfeeds-analysis-of-edtech-company-social-sentinel)
+  - [Backup idea \#2: Recreate Steve Ballmer’s Analysis of USAFacts
+    Data](#backup-idea-2-recreate-steve-ballmers-analysis-of-usafacts-data)
+
+### EdTech investing institutions, investors, and investments
+
+Drawing on data compiled by Audrey Watters, I propose to do a mapping of
+funding in the field of education technology startups. I’m interested in
+
+1.  who the major institutions are
+    1)  e.g., which institutions have made the highest number of
+        investments? which account for the highest amount of capital
+        invested?
+2.  how these institutions are connected in their funding streams
+    1)  e.g., can I create groupings of funding institutions by specific
+        companies/projects invested in, types of companies/projects
+        invested in (keyword), and/or location?
+3.  whether there are any overlaps by keyword/topic area
+    1)  e.g., do companies that invest in topic A also tend to invest in
+        topic B?
+4.  how, if at all, these vary over time
+    1)  e.g., by keyword, by investor, by company receiving funding
+
+By “funding,” I currently mean venture capital. Since 2015, Audrey
+Watters has compiled data on all EdTech venture capital investments,
+linked
+[here](https://github.com/Hack-Education-Data/investments/tree/master/_data).
+The dataset for each year contains variables: \* month, name, amount,
+series, url, investors, total amount, crunchbase (link), keyword (e.g.,
+STEM curriculum), level, type, country, notes
+
+I would love to include grants (e.g., philanthropy), but datasets on
+this are hard to come by.
+
+Watters has a dataset on major foundations in edtech
+[here](https://github.com/Hack-Education-Data/foundations/blob/master/_data/foundations.yaml),
+though it’s a very small dataset (9 foundations; includes name of
+foundation and projects).
+
+Watters has other repositories on her
+[Github](https://github.com/Hack-education-data?page=1), which I may
+loop back to as part of additional investigation on specific “major”
+institutions and networks, as described above.
+
+### Backup idea \#1: Recreate Buzzfeed’s Analysis of EdTech Company Social Sentinel
+
+Link to data and R code
+[here](https://buzzfeednews.github.io/2019-10-social-sentinel/). I’m
+particularly interested in the analysis of district spending, based on
+data obtained from [GovSpend](https://www.govspend.com).
+
+I have two questions about possible ways to take this further. First:
+Social Sentinel is only one of multiple “safety management platforms.” I
+would love to get data from GovSpend regarding others (Gaggle, Securly,
+Bark, etc.), but I don’t have a plan for this; Stanford doesn’t have a
+license, as far as I can tell. Second: I would be interested in
+strategies, if there are any, for linking this dataset with
+[others](https://educationdata.urban.org/data-explorer/school-districts/)
+by school district (“agency” variable). For instance, is there any
+relationship between spending on Social Sentinel (or other SMPs) and
+student demographics? or, total spending? (Other datasets )
+
+### Backup idea \#2: Recreate Steve Ballmer’s Analysis of USAFacts Data
+
+Link to NYTimes article
+[here](https://www.nytimes.com/2017/04/17/business/dealbook/steve-ballmer-serves-up-a-fascinating-data-trove.html).
+Link to USAFacts [here](https://usafacts.org). Pulled from C01 Project
+Proposal Ideas.

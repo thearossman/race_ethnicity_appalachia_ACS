@@ -1,0 +1,31 @@
+---
+title: "Project proposal 2"
+author: "Thea Rossman"
+date: "`r Sys.Date()`"
+output: 
+  github_document:
+    toc: true
+---
+
+```{r include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Project Proposal: Recreating USAFacts Analysis of Wealth Distribution in the United States
+
+The original analysis is [here](https://usafacts.org/reports/facts-in-focus/how-wealth-distributed-in-america).
+
+The USAFacts analysis draws on two datasets: (1) the Federal Reserve Distributional Financial Accounts, updated quarterly; and (2) the US Census Bureau's Net Worth of Households: 2016. The analysis also cites a different USAFacts analysis that attributes dollar amounts to income brackets (e.g., top 5%, bottom quartile), in order to make claims about the wealth held by these income groups. 
+
+In particular, I am interested in: 
+
+* Recreating the graph of wealth distribution by income group, adjusted to 2019 dollars. 
+  + I'm also interested in what different breakdowns and visualizations -- perhaps comparing wealth percentile and income percentile, breaking down income percentiles differently (top 0.1%?) -- could show us. 
+* Recreating the share of wealth distribution by income group, comparing this to 
+* Recreating "wealth distribution by wealth group"
+* Recreating makeup of total household wealth by category
+  + I'm also interested in whether this can be broken down by racial group, education level, and/or age (variables which are contained in the Fed dataset)
+* Recreating liabilities distribution by income group
+  + Similarly, I'd like to examine whether this varies by demographic group
+
+  

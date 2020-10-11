@@ -1,0 +1,233 @@
+---
+title: "Median Income & Segregation"
+author: "Thea Rossman"
+date: "`r Sys.Date()`"
+output: 
+  github_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+# Libraries
+library(tidyverse)
+library(tidycensus)
+
+# Parameters
+
+census_groups_file_income <- 
+  "../data/appalachian_race_income.csv"
+census_groups_file_race <- 
+  "../data/appalachian_block_groups_race.csv"
+
+census_groups_central_file_income <-
+  "../data/central_appalachian_race_income.csv"
+census_groups_central_file_race <-
+  "../data/central_appalachian_block_groups_race.csv"
+  
+appalachian_counties_file <- "../data/appalachian_counties_fips.csv"
+
+
+#===============================================================================
+
+# Code
+```
+
+```{r}
+race_med_income <- 
+  census_groups_file_income %>%
+  read_csv(
+    col_types = 
+      cols(
+        census_block_fips = col_character(),
+        name = col_character(),
+        .default = col_integer()
+      )
+  ) 
+
+groups_race <-
+  census_groups_file_race %>%
+  read_csv(
+    col_types = 
+      cols(
+        census_block_fips = col_character(),
+        name = col_character(),
+        prop_nonwhite = col_double(), 
+        .default = col_integer()
+      )
+  ) %>%
+  select(
+    census_block_fips, 
+    county_fips, 
+    total_population,
+    white, 
+    black, 
+    prop_nonwhite
+  )
+
+groups_race_income <- 
+  groups_race %>%
+  left_join(
+    race_med_income, 
+    by = c("census_block_fips", "county_fips")
+  )
+
+groups_race_income %>%
+  drop_na() %>%
+  ggplot(aes(prop_nonwhite, median_household_income)) +
+  geom_point() +
+  geom_smooth() +
+  labs(title = "Appalachia")
+```
+
+```{r}
+groups_race_income %>%
+  filter(prop_nonwhite > 0.75, median_household_income > 100000)
+```
+
+Central app: 
+
+```{r}
+race_med_income_central <- 
+  census_groups_central_file_income %>%
+  read_csv(
+    col_types = 
+      cols(
+        census_block_fips = col_character(),
+        name = col_character(),
+        .default = col_integer()
+      )
+  ) 
+
+groups_race_central <-
+  census_groups_central_file_race %>%
+  read_csv(
+    col_types = 
+      cols(
+        census_block_fips = col_character(),
+        name = col_character(),
+        prop_nonwhite = col_double(), 
+        .default = col_integer()
+      )
+  ) %>%
+  select(
+    census_block_fips, 
+    county_fips, 
+    total_population,
+    white, 
+    black, 
+    prop_nonwhite
+  )
+
+groups_race_income_central <- 
+  groups_race %>%
+  left_join(
+    race_med_income, 
+    by = c("census_block_fips", "county_fips")
+  )
+
+groups_race_income_central %>%
+  drop_na() %>%
+  ggplot(aes(prop_nonwhite, median_household_income)) +
+  geom_point() +
+  geom_smooth() +
+  labs(title = "Central Appalachia")
+```
+
+
+```{r}
+# high-income census blocks
+
+groups_race_income_central %>%
+  filter(median_household_income > 130000) %>%
+  arrange(desc(median_household_income)) %>%
+  select(
+    name, 
+    median_household_income, 
+    white, 
+    black, 
+    total_population, 
+    everything()
+  )
+```
+
+Notes:
+
+* Kanawha County, WV: contains Charleston
+* Knox County, TN: contains Knoxville
+* Mon County, WV: contains Morgantown 
+* Hamilton County, TN: contains Chattanooga
+* Anderson County, TN: contained in the Knoxville Metropolitan Statistical Area
+* Montgomery County, VA: contains Christiansburg; close to Virginia Tech & Blacksburg
+
+```{r}
+groups_race_income_central %>%
+  filter(median_household_income < 10000) %>%
+  arrange(median_household_income) %>%
+  select(
+    name, 
+    median_household_income, 
+    white, 
+    black, 
+    total_population, 
+    everything()
+  )
+```
+
+```{r}
+
+plot_percentile <- function(p) {
+  
+  # groups in lowest p% of income
+  groups_race_income_central %>%
+    ggplot(aes(prop_nonwhite)) +
+    geom_density(
+      data = 
+      . %>%
+        filter(
+          median_household_income < 
+            quantile(
+              groups_race_income_central$median_household_income,
+              probs = p,
+              na.rm = TRUE
+            )
+        ),
+      color = "red"
+    ) +
+    geom_density(
+      data = 
+      . %>%
+        filter(
+          median_household_income >
+            quantile(
+              groups_race_income_central$median_household_income,
+              probs = 1 - p,
+              na.rm = TRUE
+            )
+        ),
+      color = "blue"
+    ) +
+    scale_x_continuous(limits = c(0, 1)) +
+    scale_y_continuous(limits = c(0, 10)) +
+    labs(
+      title = 
+        str_glue(
+          "Central Appalachia; top and bottom ",
+          p*100,
+          "% of census blocks"
+        ),
+      subtitle = "red = bottom; blue = top"
+    )
+}
+
+seq(0.1, 0.5, 0.1) %>%
+  map(plot_percentile)
+
+```
+
+
+
+

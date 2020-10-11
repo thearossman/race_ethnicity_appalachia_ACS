@@ -1,0 +1,655 @@
+---
+title: "Race, Ethnicity, & Appalachian Peoples: Scaffolding Talk-Back with ACS Data"
+author: "Thea Rossman"
+date: 2019-
+output: 
+  github_document:
+    toc: true
+---
+
+```{r include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+# Libraries
+library(tidyverse)
+# task-begin
+library(dcl)
+library(tidycensus)
+# task-end
+
+# Parameters
+
+ky_central_app_counties <- 
+  c(
+    "Adair", "Bath", "Bell", "Boyd", "Breathitt", "Carter", "Casey", "Clark", 
+    "Clay", "Clinton", "Cumberland", "Edmonson", "Elliott", "Estill", "Fleming", 
+    "Floyd", "Garrard", "Green", "Greenup", "Harlan", "Hart", "Jackson", 
+    "Johnson", "Knott", "Knox", "Laurel", "Lawrence", "Lee", "Leslie", 
+    "Letcher", "Lewis", "Lincoln", "McCreary", "Madison", "Magoffin", "Martin", 
+    "Menifee", "Metcalfe", "Monroe", "Montgomery", "Morgan", "Nicholas", 
+    "Owsley", "Perry", "Pike", "Powell", "Pulaski", "Robertson", "Rockcastle", 
+    "Rowan", "Russell", "Wayne", "Whitley",  "Wolfe"
+  )
+
+tn_central_app_counties <-
+  c(
+    "Anderson", "Bledsoe", "Blount", "Bradley", "Campbell", "Cannon", "Carter", 
+    "Claiborne", "Clay", "Cocke", "Coffee", "Cumberland", "De Kalb", "Fentress", 
+    "Franklin", "Grainger", "Greene", "Grundy", "Hamblen", "Hamilton", 
+    "Hancock", "Hawkins", "Jackson", "Jefferson", "Johnson", "Knox", "Lawrence", 
+    "Lewis", "Loudon", "McMinn", "Macon", "Marion", "Meigs", "Monroe", "Morgan", 
+    "Overton", "Pickett", "Polk", "Putnam", "Rhea", "Roane", "Scott", 
+    "Sequatchie", "Sevier", "Smith", "Sullivan", "Unicoi", "Union", "Van Buren", 
+    "Warren", "Washington", "White"
+  )
+
+va_central_app_counties <- 
+  c(
+    "Alleghany", "Bath", "Bland", "Botetourt", "Buchanan", "Carroll", 
+    "Craig", "Dickenson", "Floyd", "Giles", "Grayson", "Henry", "Highland", 
+    "Lee", "Montgomery", "Patrick", "Pulaski", "Rockbridge", "Russell", 
+    "Scott", "Smyth", "Tazewell", "Washington", "Wise", "Norton", "Wythe"
+  )
+
+# note that all counties in WV are in the ARC def of Central Appalachia
+
+# ACS5 call parameters
+  # race and ethnicity; using "Hispanic or Latino Origin by Race" variable
+race_ethnicity_vars_acs5 <- 
+  c(
+    white = "B03002_003",
+    black = "B03002_004",
+    american_indian_alaska_native = "B03002_005",
+    asian = "B03002_006",
+    native_hawaiian_pacific_islander = "B03002_007",
+    other = "B03002_008",
+    multiracial = "B03002_009",
+    hispanic_latino = "B03001_003",
+    total_population = "B03002_001"
+  )
+  # year of interest
+acs5_year <- 2018
+
+# Decennial census call parameters
+  # race and ethnicity; using "Hispanic or Latino Origin by Race" variable
+race_ethnicity_vars_dec <- 
+  c(
+    total_pop = "P005001",
+    white_alone = "P005003",
+    black_alone = "P005004",
+    amer_ind_alask_nativ_alone = "P005005",
+    asian_alone = "P005006",
+    nat_hawaiian_pac_island_alone = "P005007",
+    other_alone = "P005008",
+    multi_racial = "P005009",
+    hisp_latino = "P004003"
+  )
+  
+dec_year <- 2010
+
+
+# white households living below poverty line
+white_household_poverty_acs5 <- 
+  c(
+    n_households = "B17010_001",
+    n_white_households = "B17010H_001",
+    white_households_below_poverty = "B17010H_002"
+  )
+
+
+
+# solution begin
+
+  # file containing FIPS codes for ARC-designated counties
+arc_counties_file <- "~/Downloads/County-Economic-Status_FY2020_Data.xlsx"
+
+  # files containing FIPS codes from Census bureau
+fips_all_geocodes_file <- "~/Downloads/all-geocodes-v2018.xlsx"
+fips_state_file <- "~/Downloads/state-geocodes-v2018.xlsx"
+
+# solution end
+
+#===============================================================================
+
+# Code
+```
+
+
+## 1. Background & motivation
+
+Before beginning this challenge, read [this](https://www.guernicamag.com/elizabeth-catte-appalachia-isnt-trump-country/) interview with public historian Elizabeth Catte and [this](https://www.thestayproject.net/blog-stay-in-the-news/stays-full-statement-re-jd-vance-at-the-2018-appalachian-studies-conference) statement from the Stay Together Appalachian Youth (STAY) project. 
+
+Both of the pieces above reference the book *Hillbilly Elegy* by J.D. Vance. Vance has joined a long line of journalists, writers, social scientists (in particular, statisticians), politicians, and aid workers who have, since the 1880s, presented a singular, exaggerated narrative of the peoples living in the central and southern Appalachian mountains. The narratives about Appalachia that the above authors reference have, depsite historical changes, remained relatively static. 
+
+This challenge emerges from the ways in which census data, including the American Community Survey, has been used to both perpetuate these narratives about Appalachia and, by folks in the region, to buttress personal stories in speaking back against them.
+
+Two major ways that the former has happened, and how it shows up in *Hillbilly Elegy*:
+
+* In referring to the nebulous population which he claims his experience represents, J.D. Vance uses the descriptors "Appalachian whites," "the white working-class," "poor whites," "rural whites," and "Appalachians" interchangeably. This collapsing of identities -- assuming that working-class and poor white people live primarily in Appalachia, and that everyone in Appalachia is poor/working-class and white -- is hardly unique to Vance and hardly new. It erases the experiences of people of color currently in the region, people of color with ancestral ties to the region, and the majority of poor and working-class white people (who live elsewhere). 
+* J.D. Vance joins up with others (including white supremacist statistician Charles Murray, whom Elizabeth Catte references in her interview above) who draw on ACS and other data (e.g., two-parent home, marriage and divorce, religious practice) to scaffold a "culture of poverty" argument -- e.g., the claim that individuals, not systems, are responsible for personal economic conditions.  
+
+One relatively simple tactic that people within the region have used to push back is analyzing and citing census data that contradict bullet point #1. 
+
+__q1.1__ Find at least two claims from the articles or paragraph above that you imagine someone could be skeptical of and that you believe you could help back up with data.
+
+<!-- solution-begin -->
+
+There are a lot of possible responses to this question. A few that stick out to me: 
+
+* From Catte: 
+  + "...just the sheer ratio of Trump Country pieces. We have to question why there are so many articles about Appalachia and Trump, and so few articles about progressive people in Appalachia."
+  + "The working class of Appalachia is the working class of any region. It’s people who work in retail and hospitality. People who work in healthcare and are underpaid for that. People who are teachers and educators, who, again, are very underpaid. The working class are the people just like in California, who are trapped in what we call the gig economy. People who are trapped in unstable work contracts, temp labor, people who work at the Dollar General store. People who give you your flu shot. These are the people in Appalachia who make the region tick. Also, the emerging face of the working class is more likely to be a woman or a person of color." 
+* From STAY: 
+  + "Bringing JD Vance in as an 'expert' on that panel legitimized his narrative and marginalized, erased and silenced the experiences and voices of young people, people of color, indigenous people, people who are poor, people with disabilities, and LGBTQIA+ people in Appalachia."
+
+<!-- solution-end -->
+
+## 2. Where is Appalachia? 
+
+Before we begin to pull data from the census, we need to define and get FIPS codes for a workable geographic region.
+
+I suggest basing your analysis on two different definitions of Appalachia. 
+
+__q2.1__ The first is from the [Appalachian Regional Commission](https://www.arc.gov/appalachian_region/CountiesinAppalachia.asp). This is the most common definition used. It comes from the 1960s War on Poverty era. (borders are cultural and historical artifacts.)
+
+You are going to be making maps and pulling census data, so you need FIPS codes. On the ARC website, you will be able to find reports and studies, some of which provide maps. These allow you to download supporting data as an Excel file. These files include data for counties, which include county FIPS codes. (Hint: I used a "County Economic Status in Appalachia" study.) 
+
+Download one of these files, import the data, and create a tibble with the FIPS code, county name, and state name. Call this `all_appalachia_counties`.
+
+```{r}
+# solution begin
+
+all_appalachian_counties <- 
+  arc_counties_file %>%
+  readxl::read_xlsx(
+    sheet = "ARC Counties", 
+    skip = 4
+  ) %>%
+  transmute(
+    fips = as.integer(FIPS), 
+    county_name = County, 
+    state_name = State
+  ) %>%
+  drop_na()
+
+# solution end
+```
+
+
+__q2.2__ The second is from the [Appalachian Community Fund](http://www.appalachiancommunityfund.org/where-we-fund/). These counties represent one boundary definition of "Central Appalachia." 
+
+The county names from this webpage are in the parameters, divided by state (note that all WV counties are on the list, so they are not in the parameters). Create a tibble similar to `all_appalachia_counties` called `central_appalachia_counties`. 
+
+I did this by getting FIPS codes from the census for all counties; then filtering this by state and by a vector of county names; then binding the rows of these tibbles together. (If there's a faster way of doing it, please do that!)
+
+```{r}
+# solution begin
+
+# get all geocodes from census bureau website in order to filter to Central App
+state_fips <- 
+  fips_state_file %>%
+  readxl::read_xlsx(skip = 5) %>%
+  transmute(
+    state_fips = as.integer(`State (FIPS)`),
+    name = Name
+  ) %>%
+  filter(state_fips != 0)
+
+all_US_fips <- 
+  fips_all_geocodes_file %>%
+  readxl::read_xlsx(skip = 4) %>%
+  transmute(
+    summary_level = as.integer(`Summary Level`),
+    state_code = as.integer(`State Code (FIPS)`),
+    county_code = as.integer(`County Code (FIPS)`),
+    full_county_fips = state_code*1000 + county_code,
+    county_subdivision_code = as.integer(`County Subdivision Code (FIPS)`),
+    place_code = as.integer(`Place Code (FIPS)`),
+    consolidated_city_code = as.integer(`Consolidtated City Code (FIPS)`),
+    area_name = 
+      `Area Name (including legal/statistical area description)`
+  )
+
+
+# create a function that returns tibble of county fips for each state
+# (recall that for WV, all counties are included)
+central_app_countynames <- 
+  tribble(
+    ~ state, ~ counties,
+    "Kentucky", ky_central_app_counties,
+    "Tennessee", tn_central_app_counties,
+    "Virginia", va_central_app_counties
+  )
+
+get_countyfips <- function(statename, counties) {
+  all_US_fips %>%
+  filter(
+    state_code %in% 
+      (state_fips %>% filter(name == statename) %>% pull(state_fips))
+  ) %>%
+  mutate(county_name = map_chr(area_name, word)) %>%
+  filter(
+    county_name %in% counties, 
+    place_code == 0
+  ) %>%
+  transmute(
+    fips = full_county_fips,
+    county_name = area_name,
+    state_name = statename
+  )
+}
+
+wv_counties <- 
+  all_US_fips %>%
+  filter(
+    state_code == 
+      (state_fips %>% filter(name == "West Virginia") %>% pull(state_fips)),
+    place_code == 0,
+    county_code != 0
+  ) %>%
+  transmute(
+    fips = full_county_fips,
+    county_name = area_name,
+    state_name = "West Virginia"
+  )
+# check that there are 55 counties in WV tibble, as there should be
+nrow(wv_counties) == 55
+
+central_appalachia_counties <- 
+  central_app_countynames %>% 
+  pmap_dfr(~ get_countyfips(..1, ..2)) %>%
+  bind_rows(wv_counties) 
+
+# solution end
+```
+
+
+## 3. Background: race and ethnicity in Appalachian counties. 
+
+Skim and/or read through [this](https://www.npr.org/sections/codeswitch/2014/04/03/298892382/stereotypes-of-appalachia-obscure-a-diverse-picture), [this](https://www.thestayproject.net/what-is-stay.html), [this](http://appvoices.org/2019/06/07/contending-with-contamination-in-minden-w-va/), [this](https://www.hollerhealthjustice.org), [this](https://www.thenation.com/article/archive/seeing-appalachia-through-the-eyes-of-appalachians/), and [this](https://www.facebook.com/highlandercenter/posts/2399172926781803). Optional -- skim “We play Billie Holiday at the abortion clinic,” by Alice; in the last pages of the STAY project zine [here](https://www.thestayproject.net/uploads/7/5/6/0/75605377/appalachian_love_story_zine.pdf)
+
+A note: As Barbara Ellen Smith (among others) has noted, the contemporary white majority in Appalachia should be taken not as “a benign demographic fact,” but as “a product of active practices characterized in part by persistent white supremacy.” Think about colonization, land theft, and American Indian Removal policies; discrimination in jobs and housing that made it harder for Black families to stay; racial terrorism that forced some non-white people to flee; and the challenges of living under Jim Crow that pushed many who could to pass as white. 
+
+__q3.1__ From the articles above, what are some things that stick out to you? 
+
+
+<!-- solution-begin -->
+
+Again, many possible responses to this question. 
+
+Some possible bullet points: 
+
+* History of Appalachia as a destination for (white) poverty tourism
+  + I find it helpful to point out where this causes harm: erasure of people of color (there's no single story of Appalachia), hiding structural factors for economic and health-related realities, justifying labor and resource extraction, and falsely projecting economic conditions as unique to a single region
+* History of the reality of a multiracial Appalachia, including systemic and interpersonal racism in the region
+  + Indigenous history and present in Appalachia (especially Shawnee, Monacan Nation, and Eastern Band of Cherokee Indians); 
+  + African-Americans are region's largest minority; 
+  + Growing and existing Latino population
+* Many examples of strong community networks, grassroots groups, and progressive advocacy organizations who are building and fighting for progressive change in Appalachia. The STAY Project, Minden community action, Holler Health Justice, and the Highlander Center are examples of this. 
+
+LOTS of things to say about data that are referenced in the articles above. Two things that I'm thinking about, in particular: 
+  
+* One reason that Minden community had such a hard time accessing EPA relocation funds is due to a lack or intentional masking of data that made it look like not a "cancer cluster," or that blamed high rates of cancer on individuals' health choices.  
+* The Code Switch article also mentions transitory workers, undocumented people, and under-documented people, who may be uncounted or undercounted by the census. This calls into question the accuracy of using ACS data. 
+
+<!-- solution-end -->
+
+
+## 4. Get census data on race and ethnicity in Appalachia
+
+__q4.1__ Use tidycensus to get statistics on race and ethnicity and estimates for total population for the Appalachian regions defined above. 
+
+Some notes: For this, I used the ACS5 for 2018; Sara said that it's pretty accurate, and the most recent decennial census was almost 10 years ago. I considered "white" to mean "white alone, non-Hispanic." I chose variables for race that distinguish from Hispanic and/or Latinx origin, and I did not break down American Indian/Alaska Native populations by tribal citizenship. 
+
+```{r}
+# solution begin
+
+get_race_ethnicity <- function(statename, counties_df) {
+  get_acs(
+    geography = "county", 
+    variables = race_ethnicity_vars_acs5,
+    year = acs5_year,
+    state = statename,
+    county = 
+      {{counties_df}} %>% 
+      filter(state_name == statename) %>%
+      mutate(fips = fips %% 1000) %>%
+      pull(fips)
+  ) %>%
+  transmute(
+    fips = as.integer(GEOID),
+    variable,
+    estimate
+  ) %>%
+  pivot_wider(names_from = variable, values_from = estimate) %>%
+  left_join(all_appalachian_counties, by = "fips") %>%
+  select(fips, county_name, state_name, everything())
+}
+
+# for ARC-defined appalachia
+race_all_appalachia <- 
+  all_appalachian_counties %>%
+  select(statename = state_name) %>%
+  distinct() %>%
+  pmap_dfr(~ get_race_ethnicity(..1, all_appalachian_counties))
+
+# for ACF-defined appalachia
+race_central_appalachia <-
+  central_appalachia_counties %>%
+  select(statename = state_name) %>%
+  distinct %>%
+  pmap_dfr(~ get_race_ethnicity(..1, central_appalachia_counties))
+
+# solution end
+```
+
+
+
+__q4.2__ Explore the data a bit. In doing this, I found it helpful to create a "prop_white" variable. 
+
+* Check out which counties have the largest white and non-white populations. Check out averages and medians. 
+* Check out how non-white residents self-identified on the census. If you want, pull additional data on ethnicity for the census for specific counties. 
+* Maybe check out absolute numbers. What do you notice? One question that was interesting to me: in the perception that Appalachia is white, approximately how many people are being erased?
+* Other ideas?
+
+
+<!-- solution-begin -->
+
+Note: many different possible ways to do this!! Below is just an example. 
+
+<!-- solution-end -->
+
+
+```{r}
+# solution begin
+
+# create variables
+race_all_appalachia <- 
+  race_all_appalachia %>%
+  mutate(
+    n_nonwhite = total_population - white,
+    prop_nonwhite = n_nonwhite / total_population
+  )
+
+
+# SUMMARY
+
+# Alabama, Georgia, and Mississippi include counties with highest 
+# non-white proportion; some of these have majority-people of color populations
+race_all_appalachia %>%
+  arrange(desc(prop_nonwhite))
+
+# These are followed by some counties in NC, PA, SC, VA, TN, and OH
+# none of these counties are majority-POC 
+race_all_appalachia %>%
+  filter(!(state_name %in% c("Alabama", "Georgia", "Mississippi"))) %>%
+  arrange(desc(prop_nonwhite))
+
+props_all_appalachia <- 
+  race_all_appalachia %>%
+  mutate(
+    prop_poc_hispanic = hispanic_latino / n_nonwhite,
+    prop_poc_black = black / n_nonwhite, 
+    prop_poc_native = 
+      (american_indian_alaska_native + native_hawaiian_pacific_islander) / 
+        n_nonwhite,
+    prop_poc_asian = asian / n_nonwhite,
+    prop_poc_other = other / n_nonwhite,
+    prop_poc_multiracial = multiracial / n_nonwhite
+  )
+
+# Here, we see many counties where nearly all non-white population is Black
+# These counties are largely in Alabama and Mississippi
+props_all_appalachia %>% 
+  arrange(desc(prop_poc_black)) %>%
+  select(
+    county_name, 
+    state_name, 
+    prop_poc_black, 
+    total_population, 
+    prop_nonwhite
+  )
+
+# This pattern is true for Hispanic/Latinx populations, but less extreme
+props_all_appalachia %>% 
+  arrange(desc(prop_poc_hispanic)) %>%
+  select(
+    county_name, 
+    state_name, 
+    prop_poc_hispanic,
+    total_population,
+    prop_nonwhite
+  )
+
+props_all_appalachia %>% 
+  arrange(desc(prop_poc_native)) %>%
+  select(
+    county_name, 
+    state_name, 
+    prop_poc_native,
+    total_population,
+    prop_nonwhite
+  )
+
+# The counties with the largest proportion of 
+# people who identify as multiracial are in counties with low (< 17%)
+# non-white populations
+props_all_appalachia %>%
+  arrange(desc(prop_poc_multiracial)) %>%
+  select(
+    county_name, 
+    state_name, 
+    prop_poc_multiracial,
+    total_population,
+    prop_nonwhite
+  )
+  
+props_all_appalachia %>% 
+  filter(prop_poc_multiracial > 0.3, prop_nonwhite > 0.17)
+
+# solution end
+```
+
+
+```{r}
+# solution begin
+
+race_central_appalachia <- 
+  race_central_appalachia %>%
+  mutate(
+    n_nonwhite = total_population - white,
+    prop_nonwhite = n_nonwhite / total_population
+  )
+
+# total number of nonwhite people living in Central Appalachia in 2018
+# (note that this is absolutely an under-estimate)
+
+total_nonwhite <- 
+  sum(race_central_appalachia %>% pull(n_nonwhite) %>% sum())
+
+race_central_appalachia %>%
+  summarize(
+    mean_prop_nonwhite = mean(prop_nonwhite),
+    median_prop_nonwhite = median(prop_nonwhite)
+  )
+
+race_central_appalachia %>%
+  arrange(desc(n_nonwhite))
+
+race_central_appalachia %>%
+  arrange(desc(prop_nonwhite))
+
+# solution end
+```
+
+
+<!-- solution-begin -->
+
+There were an estimated `r total_nonwhite` people living in Central Appalachia in 2018.
+
+<!-- solution-end -->
+
+__q4.3__ Using the SF package, create EDA density maps of (1) Appalachia, and (2) Central Appalachia, showing the proportion of nonwhite county residents. 
+
+```{r}
+# solution begin
+
+race_all_appalachia_geometry <- 
+  race_all_appalachia %>%
+  left_join(
+    (ussf::boundaries("county", projection = "longlat") %>% 
+       transmute(fips = as.integer(GEOID), geometry)),
+    by = "fips"
+  )
+  
+# MAPS 
+
+# In the Southern part of Appalachia, we see significant populations of 
+# people of color 
+race_all_appalachia_geometry %>%
+  ggplot(aes(fill = prop_nonwhite, geometry = geometry)) +
+  geom_sf() +
+  scale_fill_viridis_c() + 
+  labs(
+    title = "all Appalachian counties (ARC definition)"
+  )
+
+# note differences between regions in Appalachia by restricting data
+race_all_appalachia_geometry %>%
+  filter(prop_nonwhite < 0.3) %>%
+  ggplot(aes(fill = prop_nonwhite, geometry = geometry)) +
+  geom_sf() +
+  scale_fill_viridis_c() +
+  labs(
+    title = "restricted to counties with less than 1/3 non-white population"
+  )
+
+# for central appalachia
+
+race_central_appalachia_geometry <- 
+  race_central_appalachia %>%
+  left_join(
+    (ussf::boundaries("county", projection = "longlat") %>% 
+       transmute(fips = as.integer(GEOID), geometry)),
+    by = "fips"
+  )
+
+race_central_appalachia_geometry %>%
+  ggplot(aes(fill = prop_nonwhite, geometry = geometry)) +
+  geom_sf() +
+  scale_fill_viridis_c() + 
+  labs(
+    title = "central Appalachian counties (Appalachian Community Fund definition)"
+  )
+
+race_central_appalachia_geometry %>%
+  filter(prop_nonwhite < 0.2) %>%
+  ggplot(aes(fill = prop_nonwhite, geometry = geometry)) +
+  geom_sf() +
+  scale_fill_viridis_c() + 
+  labs(
+    title = "Central Appalachian counties (Appalachian Community Fund definition)",
+    subtitle = "filtered to prop_nonwhite < 0.2"
+  )
+
+# solution end
+```
+
+
+
+## 5. Get census block data for race and ethnicity in Appalachian sub-counties
+
+One issue with looking at race and ethnicity data by counties is that counties are really big.
+
+__q5.1__ Using the same variables as above and the tidycensus package, create *one* tibble for *Central Appalachia* with race and ethnicity statistics for [a smaller geography](https://walkerke.github.io/tidycensus/articles/basic-usage.html)). 
+
+Notes: 
+* Hint for filtering to create the tibble: think about how the GEOID for your chosen geography is related to the GEOID for the county that it's in. 
+* Note that R does not store integers above approx 2 billion
+* One way to check your data: figure out the number of your chosen geography in a state, and use this to check your work.
+  + Census tracts for West Virginia, for example, are listed on [this page](https://www.census.gov/geographies/reference-files/2010/geo/state-local-geo-guides-2010/west-virginia.html)
+
+
+```{r}
+# solution begin
+
+# done with census tracts
+
+get_acs_state_tract <- function(state_name) {
+  get_acs(
+    geography = "tract", 
+    variables = race_ethnicity_vars_acs5,
+    year = acs5_year,
+    state = state_name
+  ) %>%
+  transmute(
+    fips = GEOID,
+    county_fips = map_chr(fips, str_sub, 1L, 5L) %>% as.integer(),
+    name = NAME,
+    variable,
+    estimate
+  ) %>%
+  pivot_wider(names_from = variable, values_from = estimate) %>%
+  mutate(
+    n_nonwhite = total_population - white,
+    prop_nonwhite = n_nonwhite / total_population
+  )
+}
+
+# check: confirm WV has 484 census tracts
+nrow(get_acs_state_tract("West Virginia")) == 484
+
+all_appalachian_census_tracts <- 
+  all_appalachian_counties %>%
+  select(state_name) %>%
+  distinct() %>%
+  map_dfr(get_acs_state_tract) %>%
+  filter(county_fips %in% (all_appalachian_counties %>% pull(fips)))
+
+central_appalachian_census_tracts <-
+  all_appalachian_census_tracts %>%
+  filter(county_fips %in% (central_appalachia_counties %>% pull(fips)))
+
+# solution end
+```
+
+Explore the data a bit (arrange, etc.). What do you notice? How is looking at these data different from looking at counties? 
+
+```{r}
+# solution begin
+central_appalachian_census_tracts %>%
+  arrange(desc(prop_nonwhite))
+
+central_appalachian_census_tracts %>%
+  mutate(prop_black = black / total_population) %>%
+  arrange(desc(prop_black))
+
+central_appalachian_census_tracts %>%
+  mutate(prop_hispanic = hispanic_latino / total_population) %>%
+  arrange(desc(prop_hispanic))
+
+central_appalachian_census_tracts %>%
+  filter(str_detect(name, "Kentucky"))
+
+# solution end
+```
+
+
+<!-- solution-begin -->
+
+While there were no overall counties with populations of people of color over 50% in Central Appalachia, there are census tracts that are significantly POC or majority-Black. 
+
+Some snapshots: 
+
+* No census tracts in Central Appalachia are majority Hispanic/Latino
+* Census Tract 7, Kanawha County, West Virginia, is approx 68% nonwhite and 60% Black. 
+
+<!-- solution-end -->
+
+Note that the focus of this challenge is meant to be EDA.  
+
+
+
+

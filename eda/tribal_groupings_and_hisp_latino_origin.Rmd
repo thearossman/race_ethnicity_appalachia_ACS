@@ -1,0 +1,465 @@
+---
+title: 
+author: 
+date: "`r Sys.Date()`"
+output: 
+  github_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+# Libraries
+library(tidyverse)
+library(tidycensus)
+
+# Parameters
+
+app_counties_race_file <-
+  "../data/appalachian_counties_race.csv"
+cent_app_counties_fips_file <- 
+  "../data/central_appalachian_counties_fips.csv"
+
+vars <- 
+  c(
+    apache = "B02014_003",
+    arapaho = "B02014_004",
+    blackfeet = "B02014_005",
+    canadian_american_indian = "B02014_006",
+    central_american_indian = "B02014_007",
+    cherokee = "B02014_008",
+    cheyenne = "B02014_009",
+    chickasaw = "B02014_010",
+    `chippewa/ojibwe` = "B02014_011",
+    chocktaw = "B02014_012",
+    colville = "B02014_013",
+    comanche = "B02014_014",
+    cree = "B02014_015",
+    muscogee = "B02014_016", # referred to as Creek in Census
+    crow = "B02014_017",
+    caddo = "B02014_018", # referred to as Delaware in Census
+    hopi = "B02014_019",
+    houma = "B02014_020",
+    iroquois = "B02014_021",
+    kiowa = "B02014_022",
+    lumbee = "B02014_023",
+    menominee = "B02014_024",
+    mexican_american_indian = "B02014_025",
+    dine = "B02014_026", # referred to as Navajo in Census
+    osage = "B02014_027",
+    ottawa = "B02014_028",
+    paiute = "B02014_029",
+    pima = "B02014_030",
+    potawatomi = "B02014_031",
+    pueblo = "B02014_032",
+    puget_sound_salish = "B02014_033",
+    seminole = "B02014_034",
+    shoshone = "B02014_035",
+    lakota = "B02014_036", # referred to as Sioux in census
+    south_american_indian = "B02014_037",
+    spanish_american_indian = "B02014_038",
+    tohono_o.odham = "B02014_039",
+    ute = "B02014_040",
+    yakama = "B02014_041",
+    yaqui = "B02014_042",
+    yuman = "B02014_043",
+    other = "B02014_044",
+    not_specified = "B02014_045",
+    alaska_native = "B02014_046"
+  )
+
+vars_hisp <- 
+  c(
+    mexico = "B03001_004",
+    puerto_rico = "B03001_005",
+    cuba = "B03001_006",
+    dominican_rep = "B03001_007",
+    central_america = "B03001_008",
+    south_america = "B03001_016"
+  )
+
+file_out_nativeam <- 
+  "../data/appalachia_tribal_groups.csv"
+
+file_out_nativeam_total_estimates <- 
+  "../data/appalachia_tribal_groups_totals.csv"
+
+acs5_year <- 2018
+
+
+app_tribal_groups_file <- 
+  "../data/appalachia_tribal_groups.csv"
+app_tribal_groups_total_estimates_file <-
+  "../data/appalachia_tribal_groups_totals.csv"
+
+#===============================================================================
+
+# Code
+```
+
+```{r}
+app_counties_race <- 
+  app_counties_race_file %>%
+  read_csv(
+    col_types = 
+      cols(
+        county_name = col_character(),
+        state_name = col_character(),
+        .default = col_integer()
+      )
+  )
+
+cent_app_county_fips <-
+  cent_app_counties_fips_file %>%
+  read_csv(
+    col_types = cols(fips = col_integer(), .default = col_character())
+  ) %>%
+  pull(fips)
+```
+
+
+# Tribal Affiliation
+
+```{r}
+native_am_over_1 <- 
+  app_counties_race %>%
+  mutate(
+    prop_native = 
+      (american_indian_alaska_native / total_population) %>% round(digits = 4)
+  ) %>%
+  filter(prop_native > 0.01) %>%
+  arrange(desc(prop_native))
+  
+native_am_census <- 
+  get_acs(
+    geography = "county",
+    variables = vars,
+    year = 2018
+  ) %>%
+  transmute(
+    fips = as.integer(GEOID), 
+    name = NAME, 
+    variable, 
+    estimate, 
+    moe
+  ) %>%
+  filter(
+    fips %in% (app_counties_race %>% pull(fips)), 
+    estimate > 0,
+    moe < estimate
+  ) %>%
+  left_join(
+    get_acs(
+      geography = "county",
+      variables = c(american_indian_tot = "B02010_001"),
+      year = 2018
+    ) %>%
+      transmute(fips = as.integer(GEOID), variable, estimate) %>%
+      pivot_wider(names_from = variable, values_from = estimate),
+    by = "fips"
+  ) %>%
+  mutate(prop = (estimate / american_indian_tot) %>% round(digits = 4))
+
+native_am_census %>%
+  select(name, variable, estimate, prop, moe, american_indian_tot) %>%
+  arrange(desc(american_indian_tot, prop)) 
+
+native_am_census %>%
+  select(name, variable, estimate, prop, moe, american_indian_tot) %>%
+  arrange(desc(prop))
+
+native_am_census %>%
+  select(name, variable, estimate, prop, moe, american_indian_tot) %>%
+  arrange(desc(estimate))
+
+native_am_census %>%
+  filter(fips %in% (native_am_over_1 %>% pull(fips))) %>%
+  select(name, variable, estimate, prop, moe, american_indian_tot) %>%
+  arrange(desc(prop))
+
+totals <- 
+  native_am_census %>%
+  group_by(variable) %>%
+  summarize(total_population_est = sum(estimate))
+
+totals %>%
+  arrange(desc(total_population_est))
+```
+
+Notes:
+
+* Kemper County contains parts of the [Mississippi Choctaw Indian Reservation](https://en.wikipedia.org/wiki/Mississippi_Band_of_Choctaw_Indians#Government).
+* Swain, Graham, and Jackson County, NC contain parts of the [Qualla Boundary](https://en.wikipedia.org/wiki/Qualla_Boundary), where the Eastern Band of Cherokee Indians holds land. 
+* Lawrence County, Alabama has, according to [Wikipedia](https://en.wikipedia.org/wiki/Lawrence_County,_Alabama), the largest population of people who identify as Native American in the state. It seems that approximately 50% of them are affiliated with the Cherokee Nation. 
+* Large numbers of Mexican American Indian individuals in Gwinnett County, GA and Greenville County, SC, both of which contain major metropolitan areas. 
+* Cattaraugus County, New York contains part of the [Cattaraugus Reservation](https://en.wikipedia.org/wiki/Cattaraugus_Reservation) of the Seneca Nation
+
+Huge margins of error... decennial might be better for this
+
+```{r}
+native_am_census %>%
+  filter(prop > 0.1, estimate != 0) %>%
+  ggplot(aes(prop, fill = variable)) +
+  geom_histogram(position = "dodge", binwidth = 0.1) +
+  labs(
+    x = "proportion of Native American pop identified with tribal grouping"
+  )
+
+native_am_census %>%
+  filter(prop > 0.1, estimate != 0, variable != "cherokee") %>%
+  ggplot(aes(prop, american_indian_tot, color = variable)) +
+  geom_point() +
+  labs(
+    x = "proportion of Native American pop identified with tribal grouping"
+  )
+```
+
+```{r}
+native_am_census %>%
+  filter(str_detect(name, "Virginia")) %>% # VA and WV
+  filter(estimate > 0, moe < estimate) %>%
+  arrange(desc(estimate))
+```
+
+According to ACS guide, it seems that people self-identify, which means that some of the people above may not be enrolled or connected to the tribe they self-identify with. 
+
+Tabulated data for this category include people who:
+
+* Indicate their race as “American Indian” or “Alaska Native.”
+* Report the name of an American Indian tribe (for example, Navajo or Blackfeet) or Alaska Native tribe (for example, Inupiat or Yup’ik).
+* Report entries such as Canadian Indian, French American Indian, or Spanish American Indian.
+
+
+```{r}
+native_am_census %>%
+  filter(fips %in% (native_am_over_1 %>% pull(fips))) %>%
+  select(fips:estimate) %>%
+  write_csv(file_out_nativeam)
+
+totals %>%
+  write_csv(file_out_nativeam_total_estimates)
+```
+
+
+### Note: this was originally included in the c01, but I moved it here
+
+## American Indian/Alaska Native Distribution by Tribal Group
+
+```{r}
+app_tribal_groups_over_1pct_native <-
+  app_tribal_groups_file %>%
+  read_csv(
+    col_types = 
+      cols(
+        fips = col_integer(), 
+        estimate = col_integer(), 
+        .default = col_character()
+      )
+  ) %>% 
+  left_join(
+    app_counties_race %>% 
+      select(fips, american_indian_alaska_native, total_population),
+    by = "fips"
+  ) %>%
+  mutate(
+    prop_of_native_pop = estimate / american_indian_alaska_native,
+    prop_of_total_pop = estimate / total_population,
+    central_appalachia = (fips %in% cent_app_county_fips)
+  )
+  
+app_tribal_groups_over_1pct_native %>%
+  group_by(fips) %>%
+  filter(prop_of_native_pop == max(prop_of_native_pop)) %>%
+  ungroup() %>%
+  group_by(variable) %>%
+  mutate(order = sum(prop_of_native_pop)) %>%
+  ggplot(
+    aes(
+      fct_reorder(variable, -order),
+      prop_of_native_pop, 
+      color = central_appalachia
+    )
+  ) +
+  geom_point() +
+  ggrepel::geom_text_repel(
+    aes(label = name),
+    data = . %>% mutate(name = map_chr(name, str_replace, " County", "")),
+  size = 2.5,
+  color = "black",
+  direction = "both"
+  ) +
+  scale_x_discrete(labels = function(x) str_to_title(x)) +
+  scale_y_continuous(labels = scales::label_percent()) +
+  scale_color_discrete(
+    breaks = c(TRUE, FALSE),
+    labels = c("Central Appalachia", "North/South Appalachia")
+  ) +
+  theme(legend.position = "top") +
+  guides(
+    color =
+      guide_legend(
+        keyheight = 0.5,
+        title = NULL
+      )
+  ) +
+  labs(
+    title = "Largest Tribal Group for Appalachian Counties with >1% 
+    of Population Self-Identified as American Indian/Alaska Native",
+    subtitle = "Note that estimates are approximate",
+    x = "Tribal Affiliation",
+    y = "Approximate Proportion of American Indian,\n Alaska Native Population of County",
+    caption = 
+      str_glue(
+        "Source: American Community Survey, ", 
+        acs5_year, 
+        "\nCaution: Tribal Affiliation on Census is Self-Reported"
+      )
+  )
+  
+```
+
+```{r}
+app_counties_over_5pct_native <- 
+  app_tribal_groups_over_1pct_native %>%
+  filter(prop_of_total_pop > 0.05) 
+
+max <- 
+  app_tribal_groups_over_1pct_native %>%
+  filter(prop_of_total_pop == max(prop_of_total_pop))
+```
+
+There are `r nrow(app_counties_over_5pct_native)` counties with American Indian populations over 5%. Each of these counties is in western North Carolina and contains part of the Qualla Boundary, where the Eastern Band of Cherokee Indians owns and controls land. The largest of these is `r max %>% pull(name)`, where the Cherokee affiliation accounts for approximately `r ((max %>% pull(prop_of_total_pop))*100) %>% round(digits = 2)`% of the total county population. 
+
+Kemper County, Mississippi contains part of the reservation of the Mississippi Band of Choctaw Indians. 
+
+
+
+```{r}
+outside <- 
+  app_counties_race %>%
+  filter(!(fips %in% (app_tribal_groups_over_1pct_native %>% pull(fips)))) %>%
+  pull(american_indian_alaska_native) %>%
+  sum()
+
+within <- 
+  app_counties_race %>%
+  filter(fips %in% (app_tribal_groups_over_1pct_native %>% pull(fips))) %>%
+  pull(american_indian_alaska_native) %>%
+  sum()
+  
+app_tribal_groups_tot_est <-
+  app_tribal_groups_total_estimates_file %>%
+  read_csv(col_types = cols(col_character(), col_integer()))
+
+app_tribal_groups_tot_est %>%
+  filter(total_population_est > 200) %>%
+  ggplot(
+    aes(fct_reorder(variable, -total_population_est), total_population_est)
+  ) +
+  geom_col() +
+  scale_x_discrete(
+    label = 
+      function(x) x %>% str_to_title() %>% str_replace_all("[_//]", "\n")
+  ) +
+  scale_y_log10(labels = scales::label_comma(accuracy = 1)) +
+  labs(
+    title = "Population Totals for the Appalachian Region (Estimates)",
+    subtitle = "Cherokee Make Up Largest Regional Indigenous Group; 
+    Appalachian Iroquois, Mexican American Indian Follow",
+    y = "Estimated Total Regional Population \n(Logarithmic Scale)",
+    x = "",
+    caption = 
+      str_glue(
+        "Source: American Community Survey, ", 
+        acs5_year, 
+        "\nCaution: Tribal Affiliation on Census is Self-Reported"
+      )
+  )
+```
+
+Though these are the counties with the largest proportion of American Indian/Alaska Native populations, there are approximately `r outside %>% prettyNum(big.mark=",")` Indigenous individuals living in Appalachia outside of these counties, compared with `r within %>% prettyNum(big.mark=",")` Indigenous individuals living within these counties. These include hundreds who self-affiliated with Mexican Indigenous groups, particularly in metropolitan areas (see EDA document `tribal_groupings` for more).
+
+There are major issues with this data, however. According to ACS documentation, individuals self-report both American Indian identification and tribal enrollment, leading to both overreporting and underreporting of data on tribal enrollment and connection to tribal community. Census questions regarding tribal enrollment have been contested by the National Congress of American Indians, and have at times been released without rigorous collaboration with tribal governments.[^4] 
+
+One particular issue of note is that many Americans in the South and Appalachia self-identify as Cherokee. Though tribal affiliation is complicated, the Cherokee Nation has maintained rigorous documentation of tribal enrollment since colonization, and claims to tribal connection not documented in enrollment records are likely false. This may explain part of the data on Cherokee population.[^5]
+
+
+
+# Hispanic/Latino Origin
+
+```{r}
+hisp_latino_census <- 
+  get_acs(
+    geography = "county",
+    variables = vars_hisp,
+    year = 2018
+  ) %>%
+  transmute(
+    fips = as.integer(GEOID), 
+    name = NAME, 
+    variable, 
+    estimate, 
+    moe
+  ) %>%
+  filter(
+    fips %in% (app_counties_race %>% pull(fips)), 
+    estimate > 0,
+    moe < estimate
+  ) %>%
+  left_join(
+    get_acs(
+      geography = "county",
+      variables = c(hisp_latino_tot = "B03001_003"),
+      year = 2018
+    ) %>%
+      transmute(fips = as.integer(GEOID), variable, estimate) %>%
+      pivot_wider(names_from = variable, values_from = estimate),
+    by = "fips"
+  ) %>%
+  mutate(prop = (estimate / hisp_latino_tot) %>% round(digits = 4))
+
+hisp_latino_census %>%
+  group_by(variable) %>%
+  summarize(estimate = sum(estimate)) %>%
+  ggplot(aes(fct_reorder(variable, -estimate), estimate)) +
+  geom_col()
+
+hisp_latino_census %>%
+  top_n(n = 20, wt = estimate) %>%
+  group_by(variable) %>%
+  mutate(order = max(estimate)) %>%
+  ungroup() %>%
+  ggplot(aes(fct_reorder(variable, -order), estimate)) +
+  geom_point() +
+  ggrepel::geom_text_repel(
+    aes(label = name),
+    data = 
+      . %>% 
+      filter(!(variable == "mexico" & estimate < 25000)) %>%
+      mutate(name = map_chr(name, str_replace, " County", "")),
+    size = 3
+  )
+
+hisp_latino_census %>%
+  top_n(n = 20, wt = estimate)
+
+hisp_latino_census %>%
+  filter(variable != "mexico") %>%
+  arrange(desc(prop))
+```
+
+Gwinnett, GA is the second-most-populous county in Georgia, in the Lawrenceville MSA. 
+
+
+[Source](https://www.census.gov/content/dam/Census/library/publications/2019/acs/acs_aian_handbook_2019_ch01.pdf)
+
+
+
+
+[^4]: {See National Congress of American Indians, "Census 2020: Concerns About Tribal Enrollment Questions." http://www.ncai.org/policy-research-center/research-data/prc-publications/CensusAdvocacy.pdf}
+
+[^5]: {See, for example, Meagan Day, "No, you are not part Cherokee," *Timeline*, July 5, 2016, https://timeline.com/part-cherokee-elizabeth-warren-cf6be035967e; Dr. Adrienne Keene, "Real Indians Don't Care About Tonto," *Native Appropriations*, July 16, 2012. https://nativeappropriations.com/2012/07/real-indians-dont-care-about-tonto.html}
+

@@ -1,0 +1,42 @@
+---
+title: 
+author: 
+date: "`r Sys.Date()`"
+output: 
+  github_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+# Libraries
+library(tidyverse)
+
+# Parameters
+
+#===============================================================================
+
+# Code
+```
+
+```{r}
+test <- read_csv("~/Downloads/ccd_lea_052_1718_l_1a_083118/ccd_lea_052_1718_l_1a_083118.csv")
+```
+
+```{r}
+VA <- 
+  test %>%
+  filter(STATENAME == "VIRGINIA")
+
+VA %>%
+  filter(LEA_NAME == "FALLS CHURCH CITY PBLC SCHS", RACE_ETHNICITY == "White") %>%
+  summarize(sum(STUDENT_COUNT))
+
+VA %>%
+  filter(LEA_NAME == "FALLS CHURCH CITY PBLC SCHS", RACE_ETHNICITY == "Black or African American") %>%
+  summarize(sum(STUDENT_COUNT))
+```
+

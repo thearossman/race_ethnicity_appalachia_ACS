@@ -1,0 +1,98 @@
+---
+title: "EDA: Income Levels"
+author: "Thea Rossman"
+date: "`r Sys.Date()`"
+output: 
+  github_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+# Libraries
+library(tidyverse)
+
+# Parameters
+
+income_levels_file <- here::here("/data/dfa-income-levels.rds")
+
+#===============================================================================
+
+# Code
+```
+
+
+FIRST GRAPH: Wealth distribution by income group
+
+```{r}
+df <- readRDS(income_levels_file)
+
+df %>%
+  ggplot(
+    aes(x = year_dec, y = net_worth, color = category)
+  ) +
+  geom_line()
+  
+
+```
+
+
+SECOND GRAPH: Share of wealth distribution by income group
+
+```{r}
+df %>%
+  group_by(year_dec, category) %>%
+  summarize(
+    cat_wealth = sum(net_worth)
+  ) %>%
+  mutate(
+    total_wealth = sum(cat_wealth)
+  ) %>%
+  ggplot(
+    aes(
+      x = year_dec, 
+      y = cat_wealth / total_wealth, 
+     color = category
+   )
+  ) +
+  geom_line()
+
+```
+
+
+Total household wealth by category - Top 1% (of income)
+
+```{r}
+df %>%
+  filter(category == "pct99to100") %>%
+  pivot_longer(
+    cols = real_estate:other_assets,
+    names_to = "asset_type",
+    values_to = "amount"
+  ) %>%
+  select(-(net_worth:other_liabilities)) %>%
+  group_by(year_dec) %>%
+  ggplot(aes(x = year_dec, y = amount, color = asset_type)) +
+  geom_line()
+
+```
+
+Total household wealth by category -- Bottom 20% (of income)
+
+```{r}
+df %>%
+  filter(category == "pct00to20") %>%
+  pivot_longer(
+    cols = real_estate:other_assets,
+    names_to = "asset_type",
+    values_to = "amount"
+  ) %>%
+  select(-(net_worth:other_liabilities)) %>%
+  group_by(year_dec) %>%
+  ggplot(aes(x = year_dec, y = amount, color = asset_type)) +
+  geom_line()
+```
+
