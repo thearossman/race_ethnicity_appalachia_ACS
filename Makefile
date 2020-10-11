@@ -1,26 +1,3 @@
-# Search path
-VPATH =
-
-# Processed data files
-DATA =
-
-# EDA studies
-EDA =
-
-# Reports
-REPORTS =
-
-# All targets
-all : $(DATA) $(EDA) $(REPORTS)
-
-# Data dependencies
-
-
-# EDA study and report dependencies
-
-
-# Pattern rules
-%.rds : %.R
-	Rscript $<
-%.md : %.Rmd
-	Rscript -e 'rmarkdown::render(input = "$<", output_options = list(html_preview = FALSE))'
+version https://git-lfs.github.com/spec/v1
+oid sha256:3f94dac0eb681bb414cbd181bbed6599165ad0c5b89fad92b93ef1362c16c2ad
+size 347
