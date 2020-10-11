@@ -1,0 +1,5 @@
+state-geocodes-v2018.xlsx filter=lfs diff=lfs merge=lfs -text
+County-Economic-Status_FY2015_Data.xls filter=lfs diff=lfs merge=lfs -text
+README.md filter=lfs diff=lfs merge=lfs -text
+all-geocodes-v2018.xlsx filter=lfs diff=lfs merge=lfs -text
+dfa filter=lfs diff=lfs merge=lfs -text

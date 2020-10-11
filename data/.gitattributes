@@ -1,0 +1,16 @@
+appalachian_counties_fips.csv filter=lfs diff=lfs merge=lfs -text
+appalachian_counties_segregation_indices.csv filter=lfs diff=lfs merge=lfs -text
+central_appalachian_blocks_race_2010_decennial.csv filter=lfs diff=lfs merge=lfs -text
+appalachia_tribal_groups.csv filter=lfs diff=lfs merge=lfs -text
+appalachian_block_groups_race.csv filter=lfs diff=lfs merge=lfs -text
+appalachian_counties_race.csv filter=lfs diff=lfs merge=lfs -text
+central_appalachian_block_groups_race.csv filter=lfs diff=lfs merge=lfs -text
+central_appalachian_counties_fips.csv filter=lfs diff=lfs merge=lfs -text
+central_appalachian_counties_race.csv filter=lfs diff=lfs merge=lfs -text
+central_appalachian_race_income.csv filter=lfs diff=lfs merge=lfs -text
+appalachia_tribal_groups_totals.csv filter=lfs diff=lfs merge=lfs -text
+appalachian_blocks_race_2010_decennial.csv filter=lfs diff=lfs merge=lfs -text
+appalachian_counties_segregation_indices_pivoted.csv filter=lfs diff=lfs merge=lfs -text
+appalachian_race_income.csv filter=lfs diff=lfs merge=lfs -text
+appalachian_tracts_race.csv filter=lfs diff=lfs merge=lfs -text
+central_appalachian_tracts_race.csv filter=lfs diff=lfs merge=lfs -text
